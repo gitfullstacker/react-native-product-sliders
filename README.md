@@ -13,10 +13,8 @@ A customizable slider and range slider component for React Native with Material-
   <img src="./resources/slider1.png" width="200" alt="Slider with top Label" />
   <img src="./resources/slider2.png" width="200" alt="Range Slider with top Labels" />
   <img src="./resources/slider3.png" width="200" alt="Slider with Mixed Label Positions" />
+  <img src="./resources/capture.gif" width="300" alt="Capture" />
 </div>
-<video src="./resources/video.mp4" width="300" controls autoplay loop muted>
-  Your browser does not support the video tag.
-</video>
 
 ## Features
 
