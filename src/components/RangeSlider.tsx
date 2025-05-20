@@ -75,9 +75,9 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
     onPanResponderMove: (_, gestureState) => {
       if (disabled || !sliderWidth || !activeThumb.current) return;
 
-      let newX = gestureState.moveX - thumbWidth * 2;
+      let newX = gestureState.moveX - thumbWidth;
       if (isRTL) {
-        newX = sliderWidth - thumbWidth - (gestureState.moveX - thumbWidth * 2);
+        newX = sliderWidth - thumbWidth - (gestureState.moveX - thumbWidth);
       }
 
       const availableWidth = sliderWidth - thumbWidth;
