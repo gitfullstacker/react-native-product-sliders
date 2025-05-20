@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "react-native-product-sliders",
+  "version": "1.0.0",
+  "description": "A React Native slider component with Material-UI like features",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run lint && npm run typecheck",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example": "cd example/ProductSlidersExample && npm run start",
+    "bootstrap": "npm run build && cd example/ProductSlidersExample && npm install",
+    "clean": "rm -rf lib"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "react-native",
+    "slider",
+    "material-ui",
+    "range-slider",
+    "typescript"
+  ],
+  "author": "KGG Dev",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-native": ">=0.60.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.72.0",
+    "typescript": "^5.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.4.0",
+    "eslint-plugin-react": "^7.0.0",
+    "eslint-plugin-react-native": "^4.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "metro-react-native-babel-preset": "^0.77.0",
+    "prettier": "^3.0.0",
+    "react": "^18.2.0",
+    "react-native": "^0.73.0"
+  },
+  "files": [
+    "lib/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gitfullstacker/react-native-product-sliders.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gitfullstacker/react-native-product-sliders/issues"
+  },
+  "homepage": "https://github.com/gitfullstacker/react-native-product-sliders#readme"
+}

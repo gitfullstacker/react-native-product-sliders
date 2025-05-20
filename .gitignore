@@ -1,0 +1,30 @@
+# Build and Release Folders
+lib/
+dist/
+
+# Node.js Dependencies
+node_modules/
+
+# TypeScript Cache
+*.tsbuildinfo
+
+# Debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Testing
+coverage/
+
+# Temporary files
+*.tmp
+*.log
