@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, I18nManager, PanResponder, StyleProp, View, ViewStyle } from 'react-native';
+import {
+  Animated,
+  I18nManager,
+  LayoutChangeEvent,
+  PanResponder,
+  StyleProp,
+  View,
+  ViewStyle,
+} from 'react-native';
 
 import { defaultStyles } from '../styles';
 import { RangeSliderProps } from '../types';
@@ -27,84 +35,99 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   renderLabel,
   renderMarker,
 }) => {
-  const [sliderWidth, setSliderWidth] = useState(0);
+  const [sliderLayout, setSliderLayout] = useState({
+    width: 0,
+    x: 0,
+  });
   const [thumbWidth, setThumbWidth] = useState(0);
-  const lowPan = useRef(new Animated.Value(0)).current as any;
-  const highPan = useRef(new Animated.Value(0)).current as any;
+  const lowPan = useRef(new Animated.Value(0)).current;
+  const highPan = useRef(new Animated.Value(0)).current;
   const activeThumb = useRef<'low' | 'high' | null>(null);
   const isRTL = I18nManager.isRTL;
+  const sliderRef = useRef<View>(null);
 
   useEffect(() => {
-    if (!sliderWidth) return;
+    if (!sliderLayout.width) return;
 
-    const availableWidth = sliderWidth - thumbWidth;
+    const availableWidth = sliderLayout.width - thumbWidth;
     const lowPosition = ((lowValue - min) / (max - min)) * availableWidth;
     const highPosition = ((highValue - min) / (max - min)) * availableWidth;
 
     lowPan.setValue(isRTL ? availableWidth - highPosition : lowPosition);
     highPan.setValue(isRTL ? availableWidth - lowPosition : highPosition);
-  }, [min, max, lowValue, highValue, sliderWidth, thumbWidth, isRTL]);
+  }, [min, max, lowValue, highValue, sliderLayout.width, thumbWidth, isRTL]);
 
-  const handleContainerLayout = (event: any) => {
-    const { width } = event.nativeEvent.layout;
-    setSliderWidth(width);
+  const handleContainerLayout = () => {
+    sliderRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setSliderLayout({ width, x: pageX });
+    });
   };
 
-  const handleThumbLayout = (event: any) => {
+  const handleThumbLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
     setThumbWidth(width);
   };
 
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => !disabled,
+    onMoveShouldSetPanResponder: () => !disabled,
     onPanResponderGrant: (_, gestureState) => {
-      if (disabled || !sliderWidth) return;
+      if (disabled || !sliderLayout.width) return;
 
-      const touchX = gestureState.x0;
-      const lowThumbX = lowPan._value;
-      const highThumbX = highPan._value;
+      // Get touch position relative to slider
+      const touchX = gestureState.x0 - sliderLayout.x;
+      const lowThumbX = (lowPan as any)._value;
+      const highThumbX = (highPan as any)._value;
 
       const lowDistance = Math.abs(touchX - lowThumbX);
       const highDistance = Math.abs(touchX - highThumbX);
 
       activeThumb.current = lowDistance < highDistance ? 'low' : 'high';
-
       onSlidingStart?.(lowValue, highValue);
     },
     onPanResponderMove: (_, gestureState) => {
-      if (disabled || !sliderWidth || !activeThumb.current) return;
+      if (disabled || !sliderLayout.width || !activeThumb.current) return;
 
-      let newX = gestureState.moveX - thumbWidth;
+      // Calculate position relative to slider
+      let relativeX = gestureState.moveX - sliderLayout.x - thumbWidth / 2;
       if (isRTL) {
-        newX = sliderWidth - thumbWidth - (gestureState.moveX - thumbWidth);
+        relativeX = sliderLayout.width - thumbWidth - relativeX;
       }
 
-      const availableWidth = sliderWidth - thumbWidth;
-      const boundedX = Math.max(0, Math.min(newX, availableWidth));
+      const availableWidth = sliderLayout.width - thumbWidth;
+      const boundedX = Math.max(0, Math.min(relativeX, availableWidth));
       const stepSize = availableWidth / ((max - min) / step);
-      const steppedX = Math.round(boundedX / stepSize) * stepSize;
+      const steppedX = step > 0 ? Math.round(boundedX / stepSize) * stepSize : boundedX;
 
       const pan = activeThumb.current === 'low' ? lowPan : highPan;
       const otherPan = activeThumb.current === 'low' ? highPan : lowPan;
 
+      // Enforce minimum range
       if (activeThumb.current === 'low') {
-        if (steppedX + (minRange < 1 ? 1 : minRange) * stepSize > otherPan._value) return;
+        if (steppedX + minRange * stepSize > (otherPan as any)._value) return;
       } else {
-        if (steppedX - (minRange < 1 ? 1 : minRange) * stepSize < otherPan._value) return;
+        if (steppedX - minRange * stepSize < (otherPan as any)._value) return;
       }
 
       pan.setValue(steppedX);
 
-      const currentLow = min + (lowPan._value / availableWidth) * (max - min);
-      const currentHigh = min + (highPan._value / availableWidth) * (max - min);
+      // Calculate values with proper step precision
+      const currentLowRaw = min + ((lowPan as any)._value / availableWidth) * (max - min);
+      const currentHighRaw = min + ((highPan as any)._value / availableWidth) * (max - min);
+
+      // Format values based on step precision
+      const decimalPlaces = step.toString().split('.')[1]?.length || 0;
+      const currentLow = parseFloat(currentLowRaw.toFixed(decimalPlaces));
+      const currentHigh = parseFloat(currentHighRaw.toFixed(decimalPlaces));
+
       onRangeChange?.(currentLow, currentHigh);
     },
     onPanResponderRelease: () => {
       if (!activeThumb.current) return;
 
-      const currentLow = min + (lowPan._value / (sliderWidth - thumbWidth)) * (max - min);
-      const currentHigh = min + (highPan._value / (sliderWidth - thumbWidth)) * (max - min);
+      const availableWidth = sliderLayout.width - thumbWidth;
+      const currentLow = min + ((lowPan as any)._value / availableWidth) * (max - min);
+      const currentHigh = min + ((highPan as any)._value / availableWidth) * (max - min);
       onSlidingComplete?.(currentLow, currentHigh);
       activeThumb.current = null;
     },
@@ -114,11 +137,11 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   const selectedTrackWidth = Animated.subtract(highPan, lowPan);
 
   const renderMarkers = () => {
-    if (!showMarkers || !sliderWidth) return null;
+    if (!showMarkers || !sliderLayout.width) return null;
 
     const markers = [];
     const steps = (max - min) / step;
-    const markerWidth = sliderWidth / steps;
+    const markerWidth = sliderLayout.width / steps;
 
     for (let i = 0; i <= steps; i++) {
       const markerValue = min + i * step;
@@ -134,21 +157,23 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
     return <View style={defaultStyles.markerContainer}>{markers}</View>;
   };
 
-  const getLabelContainerStyle = (thumbType: 'low' | 'high'): StyleProp<ViewStyle> => {
+  const getLabelContainerStyle = (): StyleProp<ViewStyle> => {
     return [
       defaultStyles.labelContainer,
       getLabelStyle(labelPosition, labelWidth, labelLeftAdjustment),
-      thumbType === 'high' ? styles.highThumbLabel : {},
     ];
   };
 
   const getCurrentValue = (thumbType: 'low' | 'high') => {
-    const panValue = thumbType === 'low' ? lowPan._value : highPan._value;
-    return min + (panValue / (sliderWidth - thumbWidth)) * (max - min);
+    const panValue = thumbType === 'low' ? (lowPan as any)._value : (highPan as any)._value;
+    const availableWidth = sliderLayout.width - thumbWidth;
+    const valueRaw = min + (panValue / availableWidth) * (max - min);
+    const decimalPlaces = step.toString().split('.')[1]?.length || 0;
+    return parseFloat(valueRaw.toFixed(decimalPlaces));
   };
 
   return (
-    <View style={defaultStyles.container} onLayout={handleContainerLayout}>
+    <View ref={sliderRef} style={defaultStyles.container} onLayout={handleContainerLayout}>
       <View style={defaultStyles.trackContainer}>
         <View style={[defaultStyles.track, trackStyle]} />
         <Animated.View
@@ -177,9 +202,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
         ]}
         {...panResponder.panHandlers}>
         {renderLabel && (
-          <View style={getLabelContainerStyle('low')}>
-            {renderLabel(getCurrentValue('low'), 'low')}
-          </View>
+          <View style={getLabelContainerStyle()}>{renderLabel(getCurrentValue('low'), 'low')}</View>
         )}
       </Animated.View>
 
@@ -194,7 +217,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
         ]}
         {...panResponder.panHandlers}>
         {renderLabel && (
-          <View style={getLabelContainerStyle('high')}>
+          <View style={getLabelContainerStyle()}>
             {renderLabel(getCurrentValue('high'), 'high')}
           </View>
         )}
@@ -203,12 +226,6 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
       <View style={defaultStyles.touchableArea} {...panResponder.panHandlers} />
     </View>
   );
-};
-
-const styles = {
-  highThumbLabel: {
-    // Additional styling for high thumb label if needed
-  },
 };
 
 export default RangeSlider;

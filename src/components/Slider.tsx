@@ -33,11 +33,15 @@ const Slider: React.FC<SliderProps> = ({
   renderLabel,
   renderMarker,
 }) => {
-  const [sliderWidth, setSliderWidth] = useState(0);
+  const [sliderLayout, setSliderLayout] = useState({
+    width: 0,
+    x: 0,
+  });
   const [thumbWidth, setThumbWidth] = useState(0);
   const [internalValue, setInternalValue] = useState(propValue);
-  const pan = useRef(new Animated.Value(0)).current as any;
+  const pan = useRef(new Animated.Value(0)).current;
   const isRTL = I18nManager.isRTL;
+  const sliderRef = useRef<View>(null);
 
   useEffect(() => {
     setInternalValue(propValue);
@@ -45,17 +49,18 @@ const Slider: React.FC<SliderProps> = ({
   }, [propValue]);
 
   const updateThumbPosition = (value: number) => {
-    if (!sliderWidth) return;
+    if (!sliderLayout.width) return;
 
-    const availableWidth = sliderWidth - thumbWidth;
+    const availableWidth = sliderLayout.width - thumbWidth;
     const position = ((value - min) / (max - min)) * availableWidth;
     pan.setValue(isRTL ? availableWidth - position : position);
   };
 
   const handleContainerLayout = (event: LayoutChangeEvent) => {
-    const { width } = event.nativeEvent.layout;
-    setSliderWidth(width);
-    updateThumbPosition(internalValue);
+    sliderRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setSliderLayout({ width, x: pageX });
+      updateThumbPosition(internalValue);
+    });
   };
 
   const handleThumbLayout = (event: LayoutChangeEvent) => {
@@ -70,22 +75,31 @@ const Slider: React.FC<SliderProps> = ({
     onPanResponderGrant: () => {
       onSlidingStart?.(internalValue);
     },
+    // Update the onPanResponderMove handler
     onPanResponderMove: (_, gestureState) => {
-      if (disabled || !sliderWidth) return;
+      if (disabled || !sliderLayout.width) return;
 
-      let newX = gestureState.moveX - thumbWidth;
+      // Calculate position relative to slider
+      const absoluteX = gestureState.moveX;
+      let relativeX = absoluteX - sliderLayout.x - thumbWidth / 2;
+
       if (isRTL) {
-        newX = sliderWidth - thumbWidth - (gestureState.moveX - thumbWidth);
+        relativeX = sliderLayout.width - thumbWidth - relativeX;
       }
 
-      const availableWidth = sliderWidth - thumbWidth;
-      const boundedX = Math.max(0, Math.min(newX, availableWidth));
+      const availableWidth = sliderLayout.width - thumbWidth;
+      const boundedX = Math.max(0, Math.min(relativeX, availableWidth));
       const stepSize = availableWidth / ((max - min) / step);
-      const steppedX = Math.round(boundedX / stepSize) * stepSize;
+      const steppedX = step > 0 ? Math.round(boundedX / stepSize) * stepSize : boundedX;
 
       pan.setValue(steppedX);
 
-      const newValue = min + (steppedX / availableWidth) * (max - min);
+      const newValueRaw = min + (steppedX / availableWidth) * (max - min);
+
+      // Format value based on step precision
+      const decimalPlaces = step.toString().split('.')[1]?.length || 0;
+      const newValue = parseFloat(newValueRaw.toFixed(decimalPlaces));
+
       setInternalValue(newValue);
       onValueChange?.(newValue);
     },
@@ -95,17 +109,17 @@ const Slider: React.FC<SliderProps> = ({
   });
 
   const selectedTrackWidth = pan.interpolate({
-    inputRange: [0, sliderWidth - thumbWidth],
-    outputRange: [0, sliderWidth - thumbWidth],
+    inputRange: [0, sliderLayout.width - thumbWidth],
+    outputRange: [0, sliderLayout.width - thumbWidth],
     extrapolate: 'clamp',
   });
 
   const renderMarkers = () => {
-    if (!showMarkers || !sliderWidth) return null;
+    if (!showMarkers || !sliderLayout.width) return null;
 
     const markers = [];
     const steps = (max - min) / step;
-    const markerWidth = sliderWidth / steps;
+    const markerWidth = sliderLayout.width / steps;
 
     for (let i = 0; i <= steps; i++) {
       const markerValue = min + i * step;
@@ -129,7 +143,7 @@ const Slider: React.FC<SliderProps> = ({
   };
 
   return (
-    <View style={defaultStyles.container} onLayout={handleContainerLayout}>
+    <View ref={sliderRef} style={defaultStyles.container} onLayout={handleContainerLayout}>
       <View style={defaultStyles.trackContainer}>
         <View style={[defaultStyles.track, trackStyle]} />
         <Animated.View

@@ -16,8 +16,8 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "example": "cd example/ProductSlidersExample && npm run start",
-    "bootstrap": "npm run build && cd example/ProductSlidersExample && npm install",
+    "example": "cd example && npm run start",
+    "bootstrap": "npm run build && cd example && npm install",
     "clean": "rm -rf lib"
   },
   "husky": {
