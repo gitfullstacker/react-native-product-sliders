@@ -56,8 +56,8 @@ const Slider: React.FC<SliderProps> = ({
     pan.setValue(isRTL ? availableWidth - position : position);
   };
 
-  const handleContainerLayout = (event: LayoutChangeEvent) => {
-    sliderRef.current?.measure((x, y, width, height, pageX, pageY) => {
+  const handleContainerLayout = () => {
+    sliderRef.current?.measure((x, y, width, height, pageX) => {
       setSliderLayout({ width, x: pageX });
       updateThumbPosition(internalValue);
     });

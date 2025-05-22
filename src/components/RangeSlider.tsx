@@ -58,7 +58,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   }, [min, max, lowValue, highValue, sliderLayout.width, thumbWidth, isRTL]);
 
   const handleContainerLayout = () => {
-    sliderRef.current?.measure((x, y, width, height, pageX, pageY) => {
+    sliderRef.current?.measure((x, y, width, height, pageX) => {
       setSliderLayout({ width, x: pageX });
     });
   };
