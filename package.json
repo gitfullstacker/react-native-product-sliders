@@ -13,11 +13,11 @@
     "prebuild": "npm run lint && npm run typecheck",
     "build": "tsc",
     "watch": "tsc -w",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run build",
+    "prepare": "npm run clean && npm run build",
+    "prepublishOnly": "npm run clean && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "example": "cd example && npm run start",
-    "bootstrap": "npm run build && cd example && npm install",
+    "bootstrap": "npm run clean && npm run build && cd example && npm install",
     "clean": "rm -rf lib"
   },
   "husky": {
